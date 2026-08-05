@@ -1,6 +1,10 @@
 node_modules
 .next
 .vercel
+.tools
+gh-cli.zip
+gh-auth.*.log
+.bora-dev.*.log
 .env
 .env.local
 *.log

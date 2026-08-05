@@ -16,3 +16,11 @@ Plataforma inteligente para planejar, reservar e contratar experiências complet
 3. Execute `pnpm dev`.
 
 O endpoint `/api/health` informa a saúde da aplicação e da conexão com o banco.
+
+## MVP atual
+
+- Página inicial responsiva com identidade visual BORA.
+- Jornadas interativas para Festejar, Relaxar e Sugestões.
+- Coleta de local, data, convidados, orçamento e serviços.
+- Resumo do planejamento antes da solicitação.
+- Estrutura inicial de usuários, locais e planejamentos no PostgreSQL.
