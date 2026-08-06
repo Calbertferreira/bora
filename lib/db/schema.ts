@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -22,6 +23,7 @@ export const accountStatus = pgEnum("account_status", [
   "REJECTED",
   "INACTIVE",
 ]);
+export const invitationStatus = pgEnum("invitation_status", ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"]);
 
 // Better Auth identity table. Domain-specific information lives in userProfiles.
 export const users = pgTable("users", {
@@ -100,6 +102,39 @@ export const supplierProfiles = pgTable("supplier_profiles", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const internalInvitations = pgTable("internal_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  role: appRole("role").notNull(),
+  whatsappNumber: text("whatsapp_number"),
+  whatsappName: text("whatsapp_name"),
+  tokenHash: text("token_hash").notNull().unique(),
+  status: invitationStatus("status").default("PENDING").notNull(),
+  invitedBy: uuid("invited_by").notNull().references(() => users.id),
+  acceptedBy: uuid("accepted_by").references(() => users.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("internal_invitations_email_idx").on(table.email),
+  index("internal_invitations_status_idx").on(table.status),
+]);
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  details: jsonb("details").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("audit_logs_actor_idx").on(table.actorUserId),
+  index("audit_logs_target_idx").on(table.targetUserId),
+  index("audit_logs_created_at_idx").on(table.createdAt),
+]);
 
 export const venues = pgTable("venues", {
   id: uuid("id").defaultRandom().primaryKey(),

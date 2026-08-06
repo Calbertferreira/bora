@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
-export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function LoginForm({ googleEnabled, callbackURL = "/painel" }: { googleEnabled: boolean; callbackURL?: string }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -21,13 +21,13 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
       setLoading(false);
       return;
     }
-    window.location.href = "/painel";
+    window.location.href = callbackURL;
   }
 
   async function loginWithGoogle() {
     if (!googleEnabled) return;
     setLoading(true);
-    await authClient.signIn.social({ provider: "google", callbackURL: "/painel" });
+    await authClient.signIn.social({ provider: "google", callbackURL });
   }
 
   return <form className="auth-form" onSubmit={login}>

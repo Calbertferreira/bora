@@ -5,14 +5,14 @@ import { authSchema } from "@/lib/db/schema";
 
 const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const fallbackSecret = "bora-development-only-secret-change-before-production-2026";
-const baseURL = process.env.BETTER_AUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+export const appBaseURL = process.env.BETTER_AUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 const authSecret = process.env.BETTER_AUTH_SECRET ?? (process.env.NODE_ENV === "production" ? undefined : fallbackSecret);
 
 if (!authSecret) throw new Error("BETTER_AUTH_SECRET não configurada para produção.");
 
 export const auth = betterAuth({
   appName: "BORA",
-  baseURL,
+  baseURL: appBaseURL,
   secret: authSecret,
   database: drizzleAdapter(getDb(), {
     provider: "pg",
@@ -38,7 +38,7 @@ export const auth = betterAuth({
     "http://localhost:3000",
     "http://localhost:3001",
     "https://bora-livid-nine.vercel.app",
-    baseURL,
+    appBaseURL,
   ],
 });
 

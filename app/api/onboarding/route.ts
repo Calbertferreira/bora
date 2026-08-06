@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { supplierProfiles, userProfiles, userRoles } from "@/lib/db/schema";
+import { normalizeWhatsapp } from "@/lib/whatsapp";
 
 const onboardingSchema = z.object({
   role: z.enum(["CLIENT", "SUPPLIER"]),
@@ -15,13 +16,6 @@ const onboardingSchema = z.object({
   businessName: z.string().trim().max(160).optional(),
   serviceCategory: z.string().trim().max(120).optional(),
 });
-
-function normalizeWhatsapp(value: string) {
-  const digits = value.replace(/\D/g, "");
-  const normalized = digits.startsWith("55") ? digits : `55${digits}`;
-  if (normalized.length < 12 || normalized.length > 15) throw new Error("Informe um WhatsApp válido com DDD.");
-  return `+${normalized}`;
-}
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -37,6 +31,10 @@ export async function POST(request: Request) {
 
   try {
     const db = getDb();
+    const [existingProfile] = await db.select({ status: userProfiles.status }).from(userProfiles).where(eq(userProfiles.userId, session.user.id)).limit(1);
+    if (existingProfile && ["SUSPENDED", "BLOCKED", "REJECTED", "INACTIVE"].includes(existingProfile.status)) {
+      return Response.json({ error: "Esta conta não pode alterar o cadastro." }, { status: 403 });
+    }
     const whatsappNumber = normalizeWhatsapp(data.whatsappNumber);
     const status = "ACTIVE";
 
@@ -53,7 +51,6 @@ export async function POST(request: Request) {
       set: {
         whatsappNumber,
         whatsappName: data.whatsappName,
-        status,
         acceptsOperationalMessages: data.acceptsOperationalMessages,
         acceptsMarketing: data.acceptsMarketing,
         updatedAt: new Date(),
