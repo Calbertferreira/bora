@@ -3,7 +3,7 @@ import { ExperiencePlanner } from "@/components/experience-planner";
 
 export default function Home() {
   return <main>
-    <nav><a className="brand" href="#">bora<span>.</span></a><div className="navlinks"><a href="#como">Como funciona</a><a href="#parceiros">Seja parceiro</a><button>Entrar</button></div></nav>
+    <nav><a className="brand" href="#">bora<span>.</span></a><div className="navlinks"><a href="#como">Como funciona</a><a href="/cadastro?perfil=fornecedor">Seja parceiro</a><a className="login-link" href="/entrar">Entrar</a></div></nav>
     <section className="hero">
       <div className="eyebrow"><Sparkles size={16}/> experiências feitas para você</div>
       <h1>Seu momento<br/><em>começa aqui.</em></h1>
