@@ -9,3 +9,4 @@ gh-auth.*.log
 .env.local
 *.log
 .DS_Store
+.env*
