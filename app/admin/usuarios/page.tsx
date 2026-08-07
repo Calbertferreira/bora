@@ -1,9 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { InviteUserForm } from "@/components/admin/invite-user-form";
+import { InvitationRevokeButton } from "@/components/admin/invitation-revoke-button";
+import { SupplierApprovalControl } from "@/components/admin/supplier-approval-control";
 import { UserStatusControl } from "@/components/admin/user-status-control";
 import { requirePageRole } from "@/lib/access";
 import { getDb } from "@/lib/db";
-import { internalInvitations, userProfiles, userRoles, users } from "@/lib/db/schema";
+import { internalInvitations, supplierProfiles, userProfiles, userRoles, users } from "@/lib/db/schema";
 
 const roleNames = { ADMIN: "Administrador", STAFF: "Colaborador", SUPPLIER: "Fornecedor", CLIENT: "Cliente" } as const;
 const statusNames: Record<string, string> = {
@@ -11,8 +13,15 @@ const statusNames: Record<string, string> = {
   BLOCKED: "Bloqueado", REJECTED: "Rejeitado", INACTIVE: "Inativo",
 };
 const invitationNames = { PENDING: "Pendente", ACCEPTED: "Aceito", REVOKED: "Revogado", EXPIRED: "Expirado" } as const;
+const approvalNames = { ACTIVE: "Aprovado", REJECTED: "Rejeitado", UNDER_REVIEW: "Em análise" } as const;
 
 type Role = keyof typeof roleNames;
+type SupplierApprovalStatus = keyof typeof approvalNames;
+
+function toSupplierApprovalStatus(value: string | null): SupplierApprovalStatus | null {
+  return value === "ACTIVE" || value === "REJECTED" || value === "UNDER_REVIEW" ? value : null;
+}
+
 type ListedUser = {
   id: string;
   name: string;
@@ -21,6 +30,9 @@ type ListedUser = {
   whatsappName: string | null;
   whatsappNumber: string | null;
   status: string | null;
+  businessName: string | null;
+  serviceCategory: string | null;
+  supplierApprovalStatus: SupplierApprovalStatus | null;
   roles: Role[];
 };
 
@@ -35,9 +47,13 @@ export default async function AdminUsersPage() {
     whatsappName: userProfiles.whatsappName,
     whatsappNumber: userProfiles.whatsappNumber,
     status: userProfiles.status,
+    businessName: supplierProfiles.businessName,
+    serviceCategory: supplierProfiles.serviceCategory,
+    supplierApprovalStatus: supplierProfiles.approvalStatus,
     role: userRoles.role,
   }).from(users)
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
+    .leftJoin(supplierProfiles, eq(supplierProfiles.userId, users.id))
     .leftJoin(userRoles, eq(userRoles.userId, users.id))
     .orderBy(desc(users.createdAt));
 
@@ -51,7 +67,10 @@ export default async function AdminUsersPage() {
       whatsappName: row.whatsappName,
       whatsappNumber: row.whatsappNumber,
       status: row.status,
-      roles: [],
+      businessName: row.businessName,
+      serviceCategory: row.serviceCategory,
+      supplierApprovalStatus: toSupplierApprovalStatus(row.supplierApprovalStatus),
+      roles: [] as Role[],
     };
     if (row.role && !item.roles.includes(row.role)) item.roles.push(row.role);
     grouped.set(row.id, item);
@@ -70,11 +89,12 @@ export default async function AdminUsersPage() {
     </section>
     <section className="admin-table-card">
       <div className="section-title"><div><span>CONTAS</span><h2>Usuários cadastrados</h2></div></div>
-      <div className="table-scroll"><table className="admin-table"><thead><tr><th>Pessoa</th><th>WhatsApp</th><th>Papéis</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+      <div className="table-scroll"><table className="admin-table"><thead><tr><th>Pessoa</th><th>WhatsApp</th><th>Papéis</th><th>Fornecedor</th><th>Status da conta</th><th>Ação</th></tr></thead><tbody>
         {[...grouped.values()].map((user) => <tr key={user.id}>
           <td><strong>{user.name}</strong><small>{user.email}</small></td>
           <td>{user.whatsappName ? <><strong>{user.whatsappName}</strong><small>{user.whatsappNumber}</small></> : <span className="muted">Não informado</span>}</td>
           <td><div className="compact-badges">{user.roles.map((role) => <b key={role}>{roleNames[role]}</b>)}</div></td>
+          <td>{user.supplierApprovalStatus ? <div className="supplier-approval"><strong>{user.businessName}</strong><small>{user.serviceCategory}</small><span className={`account-status status-${user.supplierApprovalStatus.toLowerCase()}`}>{approvalNames[user.supplierApprovalStatus]}</span><SupplierApprovalControl userId={user.id} currentStatus={user.supplierApprovalStatus} /></div> : <span className="muted">Não se aplica</span>}</td>
           <td><span className={`account-status status-${(user.status ?? "PENDING").toLowerCase()}`}>{statusNames[user.status ?? "PENDING"]}</span></td>
           <td><UserStatusControl userId={user.id} currentStatus={user.status ?? "PENDING"} ownAccount={user.id === access.session.user.id} /></td>
         </tr>)}
@@ -82,12 +102,13 @@ export default async function AdminUsersPage() {
     </section>
     <section className="admin-table-card">
       <div className="section-title"><div><span>HISTÓRICO</span><h2>Convites recentes</h2></div></div>
-      <div className="table-scroll"><table className="admin-table"><thead><tr><th>Pessoa</th><th>Papel</th><th>Status</th><th>Validade</th></tr></thead><tbody>
+      <div className="table-scroll"><table className="admin-table"><thead><tr><th>Pessoa</th><th>Papel</th><th>Status</th><th>Validade</th><th>Ação</th></tr></thead><tbody>
         {invitations.length ? invitations.map((invitation) => <tr key={invitation.id}>
           <td><strong>{invitation.name}</strong><small>{invitation.email}</small></td>
           <td>{roleNames[invitation.role]}</td><td>{invitationNames[invitation.status]}</td>
           <td>{invitation.expiresAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</td>
-        </tr>) : <tr><td colSpan={4} className="empty-cell">Nenhum convite emitido.</td></tr>}
+          <td>{invitation.status === "PENDING" ? <InvitationRevokeButton invitationId={invitation.id} /> : <span className="muted">—</span>}</td>
+        </tr>) : <tr><td colSpan={5} className="empty-cell">Nenhum convite emitido.</td></tr>}
       </tbody></table></div>
     </section>
   </main>;

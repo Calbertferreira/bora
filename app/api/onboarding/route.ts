@@ -4,11 +4,11 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { supplierProfiles, userProfiles, userRoles } from "@/lib/db/schema";
-import { normalizeWhatsapp } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsapp } from "@/lib/whatsapp";
 
 const onboardingSchema = z.object({
   role: z.enum(["CLIENT", "SUPPLIER"]),
-  whatsappNumber: z.string().trim().min(10).max(20),
+  whatsappNumber: z.string().trim().min(10).max(20).refine(isValidWhatsapp, "Informe um WhatsApp válido com DDD."),
   whatsappName: z.string().trim().min(2).max(100),
   acceptsOperationalMessages: z.boolean().default(true),
   acceptsMarketing: z.boolean().default(false),

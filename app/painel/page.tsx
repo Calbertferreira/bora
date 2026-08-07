@@ -23,6 +23,8 @@ export default async function DashboardPage() {
     <section className="dashboard-shell">
       <div className="welcome-card"><div><span>MINHA CONTA</span><h1>Olá, {session.user.name.split(" ")[0]}!</h1><p>Seu espaço no BORA já está pronto.</p></div><div className="role-badges">{roles.map((role) => <b key={role}>{roleNames[role]}</b>)}</div></div>
       {supplier?.approvalStatus === "UNDER_REVIEW" && <div className="status-card review"><strong>Cadastro de fornecedor em análise</strong><p>Seus dados foram recebidos. Assim que forem aprovados, você poderá publicar serviços e preços.</p></div>}
+      {supplier?.approvalStatus === "ACTIVE" && <div className="status-card approved"><strong>Fornecedor aprovado</strong><p>Seu cadastro está liberado para a publicação de serviços e preços.</p></div>}
+      {supplier?.approvalStatus === "REJECTED" && <div className="status-card rejected"><strong>Cadastro de fornecedor não aprovado</strong><p>Revise seus dados e procure a equipe BORA para solicitar uma nova análise.</p></div>}
       <div className="dashboard-grid">
         <article><span>WhatsApp</span><h2>{profile.whatsappName}</h2><p>{profile.whatsappNumber}</p></article>
         {roles.includes("ADMIN") && <article><span>Administração</span><h2>Usuários e acessos</h2><p>Convide colaboradores e administradores, suspenda contas e acompanhe os acessos.</p><a href="/admin/usuarios">Gerenciar usuários →</a></article>}

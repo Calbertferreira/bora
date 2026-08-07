@@ -8,3 +8,12 @@ export function normalizeWhatsapp(value: string) {
 export function whatsappDigits(value: string) {
   return normalizeWhatsapp(value).slice(1);
 }
+
+export function isValidWhatsapp(value: string) {
+  try {
+    normalizeWhatsapp(value);
+    return true;
+  } catch {
+    return false;
+  }
+}

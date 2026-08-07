@@ -6,14 +6,14 @@ import { appBaseURL } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { auditLogs, internalInvitations, users, userRoles } from "@/lib/db/schema";
 import { createInvitationToken, hashInvitationToken, invitationExpiresAt } from "@/lib/invitations";
-import { normalizeWhatsapp } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsapp } from "@/lib/whatsapp";
 
 const invitationSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(254),
   role: z.enum(["ADMIN", "STAFF"]),
   whatsappName: z.string().trim().max(100).optional(),
-  whatsappNumber: z.string().trim().max(20).optional(),
+  whatsappNumber: z.string().trim().max(20).refine(isValidWhatsapp, "Informe um WhatsApp válido com DDD.").optional(),
 });
 
 export async function POST(request: Request) {

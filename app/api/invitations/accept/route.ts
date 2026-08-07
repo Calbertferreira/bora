@@ -4,12 +4,12 @@ import { getCurrentAccess, isAccessBlocked } from "@/lib/access";
 import { getDb } from "@/lib/db";
 import { auditLogs, internalInvitations, userProfiles, userRoles } from "@/lib/db/schema";
 import { hashInvitationToken } from "@/lib/invitations";
-import { normalizeWhatsapp } from "@/lib/whatsapp";
+import { isValidWhatsapp, normalizeWhatsapp } from "@/lib/whatsapp";
 
 const acceptSchema = z.object({
   token: z.string().min(40).max(200),
   whatsappName: z.string().trim().min(2).max(100).optional(),
-  whatsappNumber: z.string().trim().min(10).max(20).optional(),
+  whatsappNumber: z.string().trim().min(10).max(20).refine(isValidWhatsapp, "Informe um WhatsApp válido com DDD.").optional(),
   acceptedTerms: z.boolean().optional(),
 });
 
