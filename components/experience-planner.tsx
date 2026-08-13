@@ -19,7 +19,7 @@ type Journey = "celebrate" | "relax" | "suggest";
 const journeys = [
   { id: "celebrate" as const, title: "Festejar", text: "Do local ao último detalhe, sua celebração completa.", icon: PartyPopper, tone: "coral" },
   { id: "relax" as const, title: "Relaxar", text: "Casas, flats e pousadas para sair da rotina.", icon: Palmtree, tone: "green" },
-  { id: "suggest" as const, title: "Me surpreenda", text: "Conte sua ideia e criamos experiências do seu jeito.", icon: Sparkles, tone: "yellow" },
+  { id: "suggest" as const, title: "Sugestões sob medida", text: "Conte sua ideia e criamos experiências do seu jeito.", icon: Sparkles, tone: "yellow" },
 ];
 
 const occasions = ["Aniversário infantil", "15 ou 16 anos", "Aniversário adulto", "Bodas", "Casamento", "Corporativo", "Outro"];

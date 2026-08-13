@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         {roles.includes("ADMIN") && <article><span>Administração</span><h2>Usuários e acessos</h2><p>Convide colaboradores e administradores, suspenda contas e acompanhe os acessos.</p><a href="/admin/usuarios">Gerenciar usuários →</a></article>}
         {roles.includes("STAFF") && <article><span>Operação</span><h2>Área do colaborador</h2><p>Acesso operacional aos planejamentos e fornecedores, sem resultados financeiros.</p></article>}
         {roles.includes("CLIENT") && <article><span>Planejamentos</span><h2>Comece seu momento</h2><p>Crie uma festa ou uma experiência de descanso.</p><a href="/">Planejar agora →</a></article>}
-        {roles.includes("SUPPLIER") && <article><span>Área do fornecedor</span><h2>{supplier?.businessName}</h2><p>{supplier?.serviceCategory}</p><small>A publicação será liberada após a aprovação.</small></article>}
+        {roles.includes("SUPPLIER") && <article><span>Área do fornecedor</span><h2>{supplier?.businessName}</h2><p>{supplier?.serviceCategory}</p>{supplier?.approvalStatus === "ACTIVE" ? <a href="/fornecedor/catalogo">Gerenciar espaços, serviços e preços →</a> : <small>A publicação será liberada após a aprovação.</small>}</article>}
       </div>
     </section>
   </main>;

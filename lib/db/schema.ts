@@ -24,6 +24,19 @@ export const accountStatus = pgEnum("account_status", [
   "INACTIVE",
 ]);
 export const invitationStatus = pgEnum("invitation_status", ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"]);
+export const supplierListingType = pgEnum("supplier_listing_type", [
+  "VENUE",
+  "BUFFET",
+  "DECORATION_THEME",
+  "SERVICE",
+]);
+export const supplierPriceUnit = pgEnum("supplier_price_unit", [
+  "PER_EVENT",
+  "PER_PERSON",
+  "PER_DAY",
+  "STARTING_AT",
+]);
+export const supplierListingStatus = pgEnum("supplier_listing_status", ["DRAFT", "PUBLISHED"]);
 
 // Better Auth identity table. Domain-specific information lives in userProfiles.
 export const users = pgTable("users", {
@@ -102,6 +115,57 @@ export const supplierProfiles = pgTable("supplier_profiles", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const serviceCategories = pgTable("service_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  normalizedName: text("normalized_name").notNull(),
+  isSystem: boolean("is_system").default(false).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("service_categories_normalized_name_idx").on(table.normalizedName),
+  index("service_categories_active_name_idx").on(table.active, table.name),
+]);
+
+export const supplierServices = pgTable("supplier_services", {
+  supplierUserId: uuid("supplier_user_id").notNull().references(() => supplierProfiles.userId, { onDelete: "cascade" }),
+  serviceCategoryId: uuid("service_category_id").notNull().references(() => serviceCategories.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [primaryKey({ columns: [table.supplierUserId, table.serviceCategoryId] })]);
+
+export const supplierListings = pgTable("supplier_listings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  supplierUserId: uuid("supplier_user_id").notNull().references(() => supplierProfiles.userId, { onDelete: "cascade" }),
+  type: supplierListingType("type").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  priceCents: integer("price_cents").notNull(),
+  priceUnit: supplierPriceUnit("price_unit").notNull(),
+  capacity: integer("capacity"),
+  city: text("city"),
+  state: text("state"),
+  status: supplierListingStatus("status").default("DRAFT").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("supplier_listings_supplier_idx").on(table.supplierUserId),
+  index("supplier_listings_type_status_idx").on(table.type, table.status),
+]);
+
+export const supplierListingImages = pgTable("supplier_listing_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  listingId: uuid("listing_id").notNull().references(() => supplierListings.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  pathname: text("pathname").notNull(),
+  altText: text("alt_text"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("supplier_listing_images_listing_idx").on(table.listingId),
+  uniqueIndex("supplier_listing_images_pathname_idx").on(table.pathname),
+]);
 
 export const internalInvitations = pgTable("internal_invitations", {
   id: uuid("id").defaultRandom().primaryKey(),

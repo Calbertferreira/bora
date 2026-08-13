@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { PasswordField } from "@/components/auth/password-field";
 
 export function LoginForm({ googleEnabled, callbackURL = "/painel" }: { googleEnabled: boolean; callbackURL?: string }) {
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ export function LoginForm({ googleEnabled, callbackURL = "/painel" }: { googleEn
 
   return <form className="auth-form" onSubmit={login}>
     <label>E-mail<input name="email" type="email" autoComplete="email" placeholder="voce@email.com" required /></label>
-    <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="Sua senha" required /></label>
+    <PasswordField label="Senha" name="password" autoComplete="current-password" placeholder="Sua senha" />
     {message && <p className="form-message error" role="alert">{message}</p>}
     <button className="primary-button" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
     <div className="auth-divider"><span>ou</span></div>

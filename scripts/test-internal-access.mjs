@@ -76,7 +76,7 @@ try {
 
   const supplierJar = new CookieJar();
   await requireStatus(await request("/api/auth/sign-up/email", { jar: supplierJar, body: { name: "Fornecedor Temporário", email: supplierEmail, password } }), 200, "cadastro do fornecedor");
-  await requireStatus(await request("/api/onboarding", { jar: supplierJar, body: { role: "SUPPLIER", whatsappName: "Fornecedor Teste", whatsappNumber: "85999990002", acceptedTerms: true, acceptsOperationalMessages: true, acceptsMarketing: false, businessName: "Buffet Temporário", serviceCategory: "Buffet" } }), 200, "perfil do fornecedor");
+  await requireStatus(await request("/api/onboarding", { jar: supplierJar, body: { role: "SUPPLIER", whatsappName: "Fornecedor Teste", whatsappNumber: "85999990002", acceptedTerms: true, acceptsOperationalMessages: true, acceptsMarketing: false, businessName: "Buffet Temporário", customServices: ["Buffet"] } }), 200, "perfil do fornecedor");
   const [supplier] = await sql.query("SELECT id FROM users WHERE email = $1", [supplierEmail]);
   await requireStatus(await request(`/api/admin/suppliers/${supplier.id}`, { jar: adminJar, method: "PATCH", body: { approvalStatus: "ACTIVE" } }), 200, "aprovação do fornecedor");
   const [approved] = await sql.query("SELECT approval_status FROM supplier_profiles WHERE user_id = $1", [supplier.id]);
