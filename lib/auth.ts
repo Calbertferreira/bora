@@ -41,6 +41,8 @@ export const auth = betterAuth({
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "https://bora-livid-nine.vercel.app",
+    "https://boracurtirbora.com.br",
+    "https://www.boracurtirbora.com.br",
     appBaseURL,
   ],
 });
