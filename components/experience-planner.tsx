@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-type Journey = "celebrate" | "relax" | "suggest";
+export type Journey = "celebrate" | "relax" | "suggest";
 
 const journeys = [
   { id: "celebrate" as const, title: "Festejar", text: "Do local ao último detalhe, sua celebração completa.", icon: PartyPopper, tone: "coral" },
@@ -26,8 +26,8 @@ const occasions = ["Aniversário infantil", "15 ou 16 anos", "Aniversário adult
 const stays = ["Casa de praia", "Flat", "Hotel", "Pousada", "Chalé", "Hostel"];
 const services = ["Local", "Buffet", "Decoração", "DJ ou banda", "Fotografia", "Bolo e doces", "Transporte", "Hospedagem", "Garçons", "Segurança"];
 
-export function ExperiencePlanner() {
-  const [journey, setJourney] = useState<Journey | null>(null);
+export function ExperiencePlanner({ initialJourney = null }: { initialJourney?: Journey | null }) {
+  const [journey, setJourney] = useState<Journey | null>(initialJourney);
   const [step, setStep] = useState(1);
   const [choice, setChoice] = useState("");
   const [city, setCity] = useState("");

@@ -10,8 +10,8 @@ import {
   UsersRound,
   WandSparkles,
 } from "lucide-react";
-import { ExperiencePlanner } from "@/components/experience-planner";
 import { MediaShowcase } from "@/components/landing/media-showcase";
+import { AppJourneyLinks } from "@/components/landing/app-journey-links";
 
 const benefits = [
   { icon: MapPinned, title: "Locais que combinam com você", text: "Espaços para festas, casas de praia, flats, hotéis e pousadas em uma única busca." },
@@ -34,7 +34,7 @@ export default function Home() {
         <a className="desktop-only" href="#como-funciona">Como funciona</a>
         <a className="desktop-only" href="#para-fornecedores">Para fornecedores</a>
         <a className="landing-login" href="/entrar">Entrar</a>
-        <a className="landing-nav-cta" href="#planejar">Quero planejar</a>
+        <a className="landing-nav-cta" href="/planejar">Quero planejar</a>
       </div>
     </nav>
 
@@ -51,7 +51,7 @@ export default function Home() {
         <h2>O que você quer viver?</h2>
         <p>Escolha um caminho. Em poucos passos, organizamos as informações essenciais do seu momento.</p>
       </div>
-      <ExperiencePlanner />
+      <AppJourneyLinks />
     </section>
 
     <section className="benefits-section">
@@ -98,7 +98,7 @@ export default function Home() {
     </section>
 
     <section className="final-cta">
-      <div><span><Sparkles /></span><small>SEU PRÓXIMO MOMENTO</small><h2>Então...<br/>bora curtir bora?</h2><p>Comece agora e transforme uma ideia em uma experiência completa.</p><a href="#planejar">Planejar meu momento <ArrowRight size={18}/></a></div>
+      <div><span><Sparkles /></span><small>SEU PRÓXIMO MOMENTO</small><h2>Então...<br/>bora curtir bora?</h2><p>Comece agora e transforme uma ideia em uma experiência completa.</p><a href="/planejar">Abrir o aplicativo <ArrowRight size={18}/></a></div>
     </section>
 
     <footer className="landing-footer">

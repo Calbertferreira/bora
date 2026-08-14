@@ -11,15 +11,16 @@ type ShowcaseItem = {
   title: string;
   accent: string;
   description: string;
+  appHref: string;
 };
 
 const showcaseItems: ShowcaseItem[] = [
-  { kind: "video", src: "/media/aviao-voando.mp4", poster: "/media/viagem-aviao.webp", eyebrow: "A viagem também faz parte da experiência", title: "Bora conhecer", accent: "novos lugares?", description: "Transporte, hospedagem e momentos especiais reunidos em um só planejamento." },
-  { kind: "image", src: "/media/espaco-cachoeira.webp", eyebrow: "Espaços que surpreendem", title: "Celebre cercado", accent: "pela natureza.", description: "Encontre lugares únicos para transformar sua ideia em uma experiência inesquecível." },
-  { kind: "video", src: "/media/piscina-tropical.mp4", poster: "/media/piscina-cascata.webp", eyebrow: "Pausa merecida", title: "Um fim de semana", accent: "fora da rotina.", description: "Casas, pousadas e refúgios para relaxar com quem faz seus dias melhores." },
-  { kind: "image", src: "/media/festa-casamento.webp", eyebrow: "Do sim ao último brinde", title: "Seu casamento,", accent: "do seu jeito.", description: "Espaço, buffet, decoração, música, fotografia e transporte em um só lugar." },
-  { kind: "image", src: "/media/festa-infantil.webp", eyebrow: "Festa infantil", title: "A alegria deles", accent: "começa aqui.", description: "Temas, espaços e serviços para uma comemoração cheia de boas lembranças." },
-  { kind: "image", src: "/media/festa-15-anos.webp", eyebrow: "Uma noite para sempre", title: "15 anos de sonhos.", accent: "Bora realizar?", description: "Combine cada detalhe da celebração e acompanhe o planejamento com tranquilidade." },
+  { kind: "video", src: "/media/aviao-voando.mp4", poster: "/media/viagem-aviao.webp", eyebrow: "A viagem também faz parte da experiência", title: "Bora conhecer", accent: "novos lugares?", description: "Transporte, hospedagem e momentos especiais reunidos em um só planejamento.", appHref: "/planejar?experiencia=viajar" },
+  { kind: "image", src: "/media/espaco-cachoeira.webp", eyebrow: "Espaços que surpreendem", title: "Celebre cercado", accent: "pela natureza.", description: "Encontre lugares únicos para transformar sua ideia em uma experiência inesquecível.", appHref: "/planejar?experiencia=festejar" },
+  { kind: "video", src: "/media/piscina-tropical.mp4", poster: "/media/piscina-cascata.webp", eyebrow: "Pausa merecida", title: "Um fim de semana", accent: "fora da rotina.", description: "Casas, pousadas e refúgios para relaxar com quem faz seus dias melhores.", appHref: "/planejar?experiencia=viajar" },
+  { kind: "image", src: "/media/festa-casamento.webp", eyebrow: "Do sim ao último brinde", title: "Seu casamento,", accent: "do seu jeito.", description: "Espaço, buffet, decoração, música, fotografia e transporte em um só lugar.", appHref: "/planejar?experiencia=festejar" },
+  { kind: "image", src: "/media/festa-infantil.webp", eyebrow: "Festa infantil", title: "A alegria deles", accent: "começa aqui.", description: "Temas, espaços e serviços para uma comemoração cheia de boas lembranças.", appHref: "/planejar?experiencia=festejar" },
+  { kind: "image", src: "/media/festa-15-anos.webp", eyebrow: "Uma noite para sempre", title: "15 anos de sonhos.", accent: "Bora realizar?", description: "Combine cada detalhe da celebração e acompanhe o planejamento com tranquilidade.", appHref: "/planejar?experiencia=festejar" },
 ];
 
 export function MediaShowcase() {
@@ -56,7 +57,7 @@ export function MediaShowcase() {
         <h1>{activeItem.title}<br /><em>{activeItem.accent}</em></h1>
         <p>{activeItem.description}</p>
         <div className="showcase-actions">
-          <a className="showcase-primary" href="#planejar">Planejar meu momento <ArrowRight size={18} /></a>
+          <a className="showcase-primary" href={activeItem.appHref}>Abrir no aplicativo <ArrowRight size={18} /></a>
           <a className="showcase-secondary" href="/cadastro?perfil=fornecedor">Quero ser fornecedor</a>
         </div>
       </div>
