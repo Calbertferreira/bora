@@ -4,8 +4,6 @@ import {
   Check,
   Heart,
   MapPinned,
-  Palmtree,
-  PartyPopper,
   ShieldCheck,
   Sparkles,
   Store,
@@ -13,6 +11,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { ExperiencePlanner } from "@/components/experience-planner";
+import { MediaShowcase } from "@/components/landing/media-showcase";
 
 const benefits = [
   { icon: MapPinned, title: "Locais que combinam com você", text: "Espaços para festas, casas de praia, flats, hotéis e pousadas em uma única busca." },
@@ -39,37 +38,7 @@ export default function Home() {
       </div>
     </nav>
 
-    <section className="landing-hero" id="inicio">
-      <div className="hero-copy">
-        <div className="landing-eyebrow"><Sparkles size={15} /> Seu momento começa aqui</div>
-        <h1>Você imagina.<br/><em>A gente ajuda</em><br/>a tornar real.</h1>
-        <p>Festas, momentos de descanso e experiências sob medida. Encontre o lugar, combine os serviços e organize tudo em um só lugar.</p>
-        <div className="hero-actions">
-          <a className="hero-primary" href="#planejar">Começar meu planejamento <ArrowRight size={18} /></a>
-          <a className="hero-secondary" href="/cadastro?perfil=fornecedor"><Store size={17} /> Quero ser fornecedor</a>
-        </div>
-        <div className="hero-trust">
-          <span><Check size={14} /> Planejamento gratuito</span>
-          <span><Check size={14} /> Escolhas personalizadas</span>
-        </div>
-      </div>
-
-      <div className="hero-experiences" aria-label="Experiências disponíveis">
-        <article className="experience-tile celebrate-tile">
-          <span><PartyPopper /></span><small>FESTEJAR</small><strong>Do espaço<br/>ao último brinde.</strong>
-          <div className="people-dots" aria-hidden="true"><i/><i/><i/><i/></div>
-        </article>
-        <article className="experience-tile relax-tile">
-          <span><Palmtree /></span><small>RELAXAR</small><strong>Um fim de semana<br/>fora da rotina.</strong>
-          <div className="sun-shape" aria-hidden="true" />
-        </article>
-        <article className="experience-tile suggest-tile">
-          <span><WandSparkles /></span><div><small>SUGESTÕES SOB MEDIDA</small><strong>Conte sua ideia.<br/>A gente monta os caminhos.</strong></div>
-          <ArrowRight size={24} />
-        </article>
-        <div className="hero-seal" aria-hidden="true"><Heart size={19} fill="currentColor"/><b>curta<br/>mais</b></div>
-      </div>
-    </section>
+    <MediaShowcase />
 
     <section className="landing-proof" aria-label="Diferenciais da plataforma">
       <p>Uma experiência pode reunir</p>
