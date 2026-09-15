@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { calculateEmbeddedCommission } from "@/lib/package-finance";
 
 type Supplier = { id: string; name: string };
 type Contact = { id: string; name: string; email: string; whatsapp: string };
@@ -42,7 +43,7 @@ export function PackageBuilder({ suppliers, contacts, locations, administrationF
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + (Number(item.amount.replace(",", ".")) || 0), 0), [items]);
-  const fee = subtotal * administrationFeePercent / 100;
+  const amounts = calculateEmbeddedCommission(Math.round(subtotal * 100), Math.round(administrationFeePercent * 100));
   const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   function chooseContact(id: string) {
@@ -126,7 +127,7 @@ export function PackageBuilder({ suppliers, contacts, locations, administrationF
       <select required value={item.serviceName} onChange={(event) => update(index, { serviceName: event.target.value })}><option value="">Selecione</option>{services.map((service) => <option key={service}>{service}</option>)}</select>
       <div><select value={item.providerKind} onChange={(event) => update(index, { providerKind: event.target.value as Item["providerKind"], providerSupplierId: "", providerName: "" })}><option value="SELF">Minha empresa</option><option value="REGISTERED">Fornecedor cadastrado</option><option value="MANUAL">Fornecedor livre</option></select>{item.providerKind === "REGISTERED" && <select required value={item.providerSupplierId} onChange={(event) => update(index, { providerSupplierId: event.target.value })}><option value="">Selecione</option>{suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select>}{item.providerKind === "MANUAL" && <input required value={item.providerName} onChange={(event) => update(index, { providerName: event.target.value })} placeholder="Nome do fornecedor" />}</div>
       <input value={item.description} onChange={(event) => update(index, { description: event.target.value })} placeholder="Detalhes" /><input required inputMode="decimal" value={item.amount} onChange={(event) => update(index, { amount: event.target.value })} placeholder="0,00" /><button type="button" disabled={items.length === 1} onClick={() => setItems(items.filter((_, i) => i !== index))}>×</button>
-    </div>)}</div><div className="invoice-total"><span>Subtotal <strong>{money(subtotal)}</strong></span><span>Taxa administrativa ({administrationFeePercent.toLocaleString("pt-BR")}%) <strong>{money(fee)}</strong></span><span>Total do pacote <strong>{money(subtotal + fee)}</strong></span></div></section>
+    </div>)}</div><div className="invoice-total"><span>Valores dos serviços <strong>{money(subtotal)}</strong></span><span>Comissão interna BORA ({administrationFeePercent.toLocaleString("pt-BR")}% do total) <strong>{money(amounts.commissionCents / 100)}</strong></span><span>Total apresentado ao cliente <strong>{money(amounts.totalCents / 100)}</strong></span></div></section>
     {message && <p className="form-message">{message}</p>}<div className="package-actions"><button disabled={busy} type="submit">Salvar rascunho</button><button className="primary" disabled={busy} type="button" onClick={(event) => save(event.currentTarget.form!, true)}>{busy ? "Salvando..." : "Salvar e enviar ao cliente"}</button></div>
   </form>;
 }

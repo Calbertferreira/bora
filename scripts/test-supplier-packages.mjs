@@ -44,9 +44,9 @@ try {
 
   const created = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, locationName: "Espaço Temporário", locationAddress: `Rua de Teste ${suffix}, 100`, locationCity: "Fortaleza", locationState: "CE", eventType: "Casamento", eventTitle: "Casamento criado pelo fornecedor", eventDate: "2026-12-20", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }, { serviceName: "Decoração", providerKind: "MANUAL", providerName: "Decorador Livre", amountCents: 5000 }] } }), 201, "criação do evento");
   ({ packageId } = await created.json());
-  let [saved] = await sql.query("select client_contact_id,client_user_id,event_location_id,origin,total_cents,status from event_packages where id=$1", [packageId]);
+  let [saved] = await sql.query("select client_contact_id,client_user_id,event_location_id,origin,administration_fee_cents,total_cents,status from event_packages where id=$1", [packageId]);
   locationId = saved.event_location_id;
-  if (!saved.client_contact_id || !locationId || saved.client_user_id || saved.origin !== "SUPPLIER" || saved.total_cents !== 16875 || saved.status !== "SENT") throw new Error(`Evento inicial, local, origem ou cálculo incorreto: ${JSON.stringify(saved)}`);
+  if (!saved.client_contact_id || !locationId || saved.client_user_id || saved.origin !== "SUPPLIER" || saved.administration_fee_cents !== 2143 || saved.total_cents !== 17143 || saved.status !== "SENT") throw new Error(`Evento inicial, local, origem ou cálculo incorreto: ${JSON.stringify(saved)}`);
   const repeated = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, locationName: "Outro nome não deve duplicar", locationAddress: `RUA DE TESTE ${suffix} 100`, locationCity: "FORTALEZA", locationState: "ce", eventType: "Casamento", eventTitle: "Teste de endereço repetido", eventDate: "2026-12-22", sendToClient: false, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }] } }), 201, "reutilização pelo endereço");
   const repeatedId = (await repeated.json()).packageId;
   const [repeatedLocation] = await sql.query("select event_location_id from event_packages where id=$1", [repeatedId]);
@@ -63,11 +63,17 @@ try {
   await expect(await request("/api/onboarding", { jar: clientJar, body: { role: "CLIENT", whatsappName: "Cliente Futuro", whatsappNumber: clientPhone, acceptedTerms: true } }), 200, "vínculo pelo WhatsApp");
   [{ id: clientId }] = await sql.query("select id from users where email=$1", [clientEmail]);
   [saved] = await sql.query("select client_user_id,total_cents from event_packages where id=$1", [packageId]);
-  if (saved.client_user_id !== clientId || saved.total_cents !== 22500) throw new Error("Vínculo posterior ou recálculo da edição incorreto.");
+  if (saved.client_user_id !== clientId || saved.total_cents !== 22857) throw new Error("Vínculo posterior ou recálculo da edição incorreto.");
 
   const clientPage = await expect(await request("/cliente/planejamentos", { jar: clientJar, method: "GET" }), 200, "eventos unificados do cliente");
   const clientHtml = await clientPage.text();
   if (!clientHtml.includes("Casamento atualizado") || !clientHtml.includes("Cadastrado pelo fornecedor")) throw new Error("Evento não apareceu com a origem correta no portal do cliente.");
+  const packagesPage = await expect(await request("/cliente/pacotes", { jar: clientJar, method: "GET" }), 200, "pacotes do cliente");
+  const packagesHtml = await packagesPage.text();
+  if (packagesHtml.includes("Taxa administrativa") || packagesHtml.includes("Comissão") || !packagesHtml.includes("228,57")) throw new Error("A comissão ficou explícita ou o total final não apareceu no painel do cliente.");
+  const contractPage = await expect(await request(`/cliente/pacotes/${packageId}/contrato`, { jar: clientJar, method: "GET" }), 200, "contrato do cliente");
+  const contractHtml = await contractPage.text();
+  if (contractHtml.includes("Taxa administrativa") || contractHtml.includes("Comissão") || !contractHtml.includes("228,57")) throw new Error("A comissão ficou explícita ou o total final não apareceu no contrato.");
   console.log("Fluxo validado: grade, edição, contato pré-cadastrado, vínculo seguro e origem no portal do cliente.");
 } finally {
   for (const id of [supplierId, clientId].filter(Boolean)) await sql.query("delete from audit_logs where actor_user_id=$1 or target_user_id=$1", [id]);
