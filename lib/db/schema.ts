@@ -25,6 +25,7 @@ export const planStatus = pgEnum("plan_status", [
   "COMPLETED",
   "CANCELLED",
 ]);
+export const proposalStatus = pgEnum("proposal_status", ["DRAFT", "PUBLISHED", "SELECTED", "REJECTED", "WITHDRAWN"]);
 export const appRole = pgEnum("app_role", ["ADMIN", "STAFF", "SUPPLIER", "CLIENT"]);
 export const accountStatus = pgEnum("account_status", [
   "PENDING",
@@ -261,6 +262,30 @@ export const planStatusHistory = pgTable("plan_status_history", {
   changedBy: uuid("changed_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [index("plan_status_history_plan_idx").on(table.planId, table.createdAt)]);
+
+export const planProposals = pgTable("plan_proposals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  planId: uuid("plan_id").notNull().references(() => plans.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  totalCents: integer("total_cents").notNull(),
+  status: proposalStatus("status").default("PUBLISHED").notNull(),
+  validUntil: date("valid_until"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("plan_proposals_plan_idx").on(table.planId, table.createdAt)]);
+
+export const planProposalItems = pgTable("plan_proposal_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  proposalId: uuid("proposal_id").notNull().references(() => planProposals.id, { onDelete: "cascade" }),
+  listingId: uuid("listing_id").references(() => supplierListings.id, { onDelete: "set null" }),
+  supplierUserId: uuid("supplier_user_id").references(() => supplierProfiles.userId, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  priceCents: integer("price_cents").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("plan_proposal_items_proposal_idx").on(table.proposalId)]);
 
 export const authSchema = {
   user: users,

@@ -45,11 +45,18 @@ try {
   if (!(await listPage.text()).includes("Aniversário adulto")) throw new Error("O planejamento não apareceu na lista do cliente.");
   await sql.query("insert into user_roles (user_id, role) values ($1, 'ADMIN') on conflict do nothing", [userId]);
   await expectStatus(await request(`/api/admin/plans/${planId}`, { jar, method: "PATCH", body: { status: "IN_REVIEW", note: "Estamos selecionando fornecedores compatíveis." } }), 200, "atualização operacional");
+  const [listing] = await sql.query("select id from supplier_listings where status = 'PUBLISHED' order by created_at limit 1", []);
+  if (!listing) throw new Error("É necessária uma oferta publicada para validar as propostas.");
+  const proposalResponse = await expectStatus(await request(`/api/admin/plans/${planId}/proposals`, { jar, body: { title: "Pacote recomendado", description: "Uma combinação preparada para o teste.", listingIds: [listing.id] } }), 201, "publicação da proposta");
+  const { proposalId } = await proposalResponse.json();
   const detailPage = await expectStatus(await request(`/cliente/planejamentos/${planId}`, { jar, method: "GET" }), 200, "detalhe do cliente");
   const detailHtml = await detailPage.text();
-  if (!detailHtml.includes("Estamos selecionando fornecedores compatíveis") || !detailHtml.includes("Em análise")) throw new Error("O histórico atualizado não apareceu para o cliente.");
+  if (!detailHtml.includes("Estamos selecionando fornecedores compatíveis") || !detailHtml.includes("Pacote recomendado")) throw new Error("O histórico ou a proposta não apareceu para o cliente.");
+  await expectStatus(await request(`/api/plans/${planId}/proposals/${proposalId}/select`, { jar }), 200, "escolha da proposta");
+  const [selected] = await sql.query("select p.status as plan_status, pp.status as proposal_status from plans p join plan_proposals pp on pp.plan_id=p.id where p.id=$1 and pp.id=$2", [planId, proposalId]);
+  if (selected.plan_status !== "SELECTED" || selected.proposal_status !== "SELECTED") throw new Error("A escolha da proposta não foi persistida.");
   await expectStatus(await request("/admin/planejamentos", { jar, method: "GET" }), 200, "fila operacional");
-  console.log("Fluxo validado: cliente cria, consulta e acompanha; equipe atualiza o andamento e a observação aparece no histórico.");
+  console.log("Fluxo validado: cliente cria e acompanha; equipe publica proposta; cliente compara e escolhe o pacote.");
 } finally {
   if (userId) { await sql.query("delete from audit_logs where actor_user_id = $1 or target_user_id = $1", [userId]); await sql.query("delete from plans where user_id = $1", [userId]); await sql.query("delete from users where id = $1", [userId]); }
 }
