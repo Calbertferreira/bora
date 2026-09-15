@@ -4,7 +4,7 @@ import { getCurrentAccess, hasAnyRole, isAccessBlocked } from "@/lib/access";
 import { getDb } from "@/lib/db";
 import { auditLogs, supplierProfiles, users } from "@/lib/db/schema";
 
-const approvalSchema = z.object({ approvalStatus: z.enum(["ACTIVE", "REJECTED", "UNDER_REVIEW"]) });
+const approvalSchema = z.object({ approvalStatus: z.enum(["ACTIVE", "REJECTED", "UNDER_REVIEW"]), administrationFeePercent: z.coerce.number().min(0).max(100).default(10) });
 
 export async function PATCH(request: Request, context: { params: Promise<{ userId: string }> }) {
   const access = await getCurrentAccess();
@@ -23,6 +23,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ userI
     if (!target) return Response.json({ error: "Fornecedor não encontrado." }, { status: 404 });
     const updated = await db.update(supplierProfiles).set({
       approvalStatus: parsed.data.approvalStatus,
+      administrationFeeBps: Math.round(parsed.data.administrationFeePercent * 100),
       updatedAt: new Date(),
     }).where(eq(supplierProfiles.userId, userId)).returning({ userId: supplierProfiles.userId });
     if (!updated.length) return Response.json({ error: "Perfil de fornecedor não encontrado." }, { status: 404 });
@@ -30,7 +31,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ userI
       actorUserId: access.session.user.id,
       targetUserId: userId,
       action: "SUPPLIER_APPROVAL_CHANGED",
-      details: { approvalStatus: parsed.data.approvalStatus, email: target.email },
+      details: { approvalStatus: parsed.data.approvalStatus, administrationFeePercent: parsed.data.administrationFeePercent, email: target.email },
     });
     return Response.json({ ok: true, approvalStatus: parsed.data.approvalStatus });
   } catch (error) {

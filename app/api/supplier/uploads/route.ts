@@ -14,9 +14,10 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (pathname) => {
         if (!pathname.startsWith(prefix)) throw new Error("Destino de imagem inválido.");
+        const isContract = pathname.startsWith(`${prefix}contracts/`);
         return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
-          maximumSizeInBytes: 5 * 1024 * 1024,
+          allowedContentTypes: isContract ? ["application/pdf"] : ["image/jpeg", "image/png", "image/webp"],
+          maximumSizeInBytes: (isContract ? 10 : 5) * 1024 * 1024,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ userId }),
         };
@@ -25,6 +26,6 @@ export async function POST(request: Request) {
     return Response.json(response);
   } catch (error) {
     console.error("[supplier/uploads]", error);
-    return Response.json({ error: "Não foi possível autorizar o envio da foto." }, { status: 400 });
+    return Response.json({ error: "Não foi possível autorizar o envio do arquivo." }, { status: 400 });
   }
 }

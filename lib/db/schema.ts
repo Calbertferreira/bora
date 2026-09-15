@@ -26,6 +26,8 @@ export const planStatus = pgEnum("plan_status", [
   "CANCELLED",
 ]);
 export const proposalStatus = pgEnum("proposal_status", ["DRAFT", "PUBLISHED", "SELECTED", "REJECTED", "WITHDRAWN"]);
+export const eventPackageStatus = pgEnum("event_package_status", ["DRAFT", "SENT", "ACCEPTED", "CANCELLED"]);
+export const packageProviderKind = pgEnum("package_provider_kind", ["SELF", "REGISTERED", "MANUAL"]);
 export const appRole = pgEnum("app_role", ["ADMIN", "STAFF", "SUPPLIER", "CLIENT"]);
 export const accountStatus = pgEnum("account_status", [
   "PENDING",
@@ -125,6 +127,11 @@ export const supplierProfiles = pgTable("supplier_profiles", {
   serviceCategory: text("service_category").notNull(),
   document: text("document"),
   approvalStatus: accountStatus("approval_status").default("UNDER_REVIEW").notNull(),
+  administrationFeeBps: integer("administration_fee_bps").default(1000).notNull(),
+  contractTemplateUrl: text("contract_template_url"),
+  contractTemplatePathname: text("contract_template_pathname"),
+  contractTemplateName: text("contract_template_name"),
+  contractTemplateUploadedAt: timestamp("contract_template_uploaded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -286,6 +293,44 @@ export const planProposalItems = pgTable("plan_proposal_items", {
   priceCents: integer("price_cents").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [index("plan_proposal_items_proposal_idx").on(table.proposalId)]);
+
+export const eventPackages = pgTable("event_packages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizerSupplierId: uuid("organizer_supplier_id").notNull().references(() => supplierProfiles.userId, { onDelete: "cascade" }),
+  clientUserId: uuid("client_user_id").references(() => users.id, { onDelete: "set null" }),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  clientWhatsapp: text("client_whatsapp"),
+  eventType: text("event_type").notNull(),
+  eventTitle: text("event_title").notNull(),
+  eventDate: date("event_date"),
+  eventLocation: text("event_location"),
+  status: eventPackageStatus("status").default("DRAFT").notNull(),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  administrationFeeBps: integer("administration_fee_bps").notNull(),
+  administrationFeeCents: integer("administration_fee_cents").notNull(),
+  totalCents: integer("total_cents").notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("event_packages_supplier_idx").on(table.organizerSupplierId, table.createdAt),
+  index("event_packages_client_idx").on(table.clientUserId, table.createdAt),
+]);
+
+export const eventPackageItems = pgTable("event_package_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  packageId: uuid("package_id").notNull().references(() => eventPackages.id, { onDelete: "cascade" }),
+  serviceName: text("service_name").notNull(),
+  description: text("description"),
+  providerKind: packageProviderKind("provider_kind").notNull(),
+  providerSupplierId: uuid("provider_supplier_id").references(() => supplierProfiles.userId, { onDelete: "set null" }),
+  providerName: text("provider_name").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("event_package_items_package_idx").on(table.packageId, table.sortOrder)]);
 
 export const authSchema = {
   user: users,

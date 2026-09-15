@@ -29,8 +29,8 @@ export default async function DashboardPage() {
         <article><span>WhatsApp</span><h2>{profile.whatsappName}</h2><p>{profile.whatsappNumber}</p></article>
         {roles.includes("ADMIN") && <article><span>Administração</span><h2>Usuários e acessos</h2><p>Convide colaboradores e administradores, suspenda contas e acompanhe os acessos.</p><a href="/admin/usuarios">Gerenciar usuários →</a></article>}
         {(roles.includes("ADMIN") || roles.includes("STAFF")) && <article><span>Operação</span><h2>Planejamentos dos clientes</h2><p>Analise solicitações e atualize o andamento de cada experiência.</p><a href="/admin/planejamentos">Abrir fila operacional →</a></article>}
-        {roles.includes("CLIENT") && <article><span>Planejamentos</span><h2>Meus momentos</h2><p>Crie uma experiência ou acompanhe as solicitações existentes.</p><a href="/cliente/planejamentos">Acompanhar planejamentos →</a></article>}
-        {roles.includes("SUPPLIER") && <article><span>Área do fornecedor</span><h2>{supplier?.businessName}</h2><p>{supplier?.serviceCategory}</p>{supplier?.approvalStatus === "ACTIVE" ? <a href="/fornecedor/catalogo">Gerenciar espaços, serviços e preços →</a> : <small>A publicação será liberada após a aprovação.</small>}</article>}
+        {roles.includes("CLIENT") && <><article><span>Planejamentos</span><h2>Meus momentos</h2><p>Crie uma experiência ou acompanhe as solicitações existentes.</p><a href="/cliente/planejamentos">Acompanhar planejamentos →</a></article><article><span>Contratos e propostas</span><h2>Meus pacotes</h2><p>Veja grades de serviços, valores e contratos enviados pelos fornecedores.</p><a href="/cliente/pacotes">Abrir meus pacotes →</a></article></>}
+        {roles.includes("SUPPLIER") && <article><span>Área do fornecedor</span><h2>{supplier?.businessName}</h2><p>{supplier?.serviceCategory}</p>{supplier?.approvalStatus === "ACTIVE" ? <><a href="/fornecedor/catalogo">Gerenciar catálogo →</a><a href="/fornecedor/pacotes">Montar pacotes e contratos →</a></> : <small>A publicação será liberada após a aprovação.</small>}</article>}
       </div>
     </section>
   </main>;

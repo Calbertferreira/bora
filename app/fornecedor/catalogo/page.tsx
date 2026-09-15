@@ -40,7 +40,7 @@ export default async function SupplierCatalogPage() {
   return <main className="supplier-page">
     <header className="dashboard-nav"><a className="brand" href="/">bora<span>.</span></a><div><a className="supplier-back" href="/painel">Meu painel</a><span>{access.session.user.email}</span></div></header>
     <section className="supplier-shell">
-      <div className="supplier-heading"><div><span>ÁREA DO FORNECEDOR</span><h1>Catálogo de espaços e serviços</h1><p>Cadastre suas opções com fotos e preços para aparecerem nos planejamentos do BORA.</p></div><b>{supplier.businessName}</b></div>
+      <div className="supplier-heading"><div><span>ÁREA DO FORNECEDOR</span><h1>Catálogo de espaços e serviços</h1><p>Cadastre suas opções com fotos e preços para aparecerem nos planejamentos do BORA.</p><a className="primary-link-button" href="/fornecedor/pacotes">Montar pacote e contrato</a></div><b>{supplier.businessName}</b></div>
       <SupplierServicesManager initialSuggestions={serviceSuggestions} initialSelected={selectedServices} />
       <CatalogManager
         userId={access.session.user.id}

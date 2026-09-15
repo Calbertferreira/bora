@@ -33,6 +33,7 @@ type ListedUser = {
   businessName: string | null;
   serviceCategory: string | null;
   supplierApprovalStatus: SupplierApprovalStatus | null;
+  administrationFeeBps: number | null;
   roles: Role[];
 };
 
@@ -50,6 +51,7 @@ export default async function AdminUsersPage() {
     businessName: supplierProfiles.businessName,
     serviceCategory: supplierProfiles.serviceCategory,
     supplierApprovalStatus: supplierProfiles.approvalStatus,
+    administrationFeeBps: supplierProfiles.administrationFeeBps,
     role: userRoles.role,
   }).from(users)
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
@@ -70,6 +72,7 @@ export default async function AdminUsersPage() {
       businessName: row.businessName,
       serviceCategory: row.serviceCategory,
       supplierApprovalStatus: toSupplierApprovalStatus(row.supplierApprovalStatus),
+      administrationFeeBps: row.administrationFeeBps,
       roles: [] as Role[],
     };
     if (row.role && !item.roles.includes(row.role)) item.roles.push(row.role);
@@ -94,7 +97,7 @@ export default async function AdminUsersPage() {
           <td><strong>{user.name}</strong><small>{user.email}</small></td>
           <td>{user.whatsappName ? <><strong>{user.whatsappName}</strong><small>{user.whatsappNumber}</small></> : <span className="muted">Não informado</span>}</td>
           <td><div className="compact-badges">{user.roles.map((role) => <b key={role}>{roleNames[role]}</b>)}</div></td>
-          <td>{user.supplierApprovalStatus ? <div className="supplier-approval"><strong>{user.businessName}</strong><small>{user.serviceCategory}</small><span className={`account-status status-${user.supplierApprovalStatus.toLowerCase()}`}>{approvalNames[user.supplierApprovalStatus]}</span><SupplierApprovalControl userId={user.id} currentStatus={user.supplierApprovalStatus} /></div> : <span className="muted">Não se aplica</span>}</td>
+          <td>{user.supplierApprovalStatus ? <div className="supplier-approval"><strong>{user.businessName}</strong><small>{user.serviceCategory}</small><span className={`account-status status-${user.supplierApprovalStatus.toLowerCase()}`}>{approvalNames[user.supplierApprovalStatus]}</span><SupplierApprovalControl userId={user.id} currentStatus={user.supplierApprovalStatus} administrationFeePercent={(user.administrationFeeBps ?? 1000) / 100} /></div> : <span className="muted">Não se aplica</span>}</td>
           <td><span className={`account-status status-${(user.status ?? "PENDING").toLowerCase()}`}>{statusNames[user.status ?? "PENDING"]}</span></td>
           <td><UserStatusControl userId={user.id} currentStatus={user.status ?? "PENDING"} ownAccount={user.id === access.session.user.id} /></td>
         </tr>)}
