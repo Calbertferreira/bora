@@ -28,6 +28,7 @@ export const planStatus = pgEnum("plan_status", [
 export const proposalStatus = pgEnum("proposal_status", ["DRAFT", "PUBLISHED", "SELECTED", "REJECTED", "WITHDRAWN"]);
 export const eventPackageStatus = pgEnum("event_package_status", ["DRAFT", "SENT", "ACCEPTED", "CANCELLED"]);
 export const packageProviderKind = pgEnum("package_provider_kind", ["SELF", "REGISTERED", "MANUAL"]);
+export const eventOrigin = pgEnum("event_origin", ["CLIENT", "SUPPLIER"]);
 export const appRole = pgEnum("app_role", ["ADMIN", "STAFF", "SUPPLIER", "CLIENT"]);
 export const accountStatus = pgEnum("account_status", [
   "PENDING",
@@ -294,10 +295,25 @@ export const planProposalItems = pgTable("plan_proposal_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [index("plan_proposal_items_proposal_idx").on(table.proposalId)]);
 
+export const clientContacts = pgTable("client_contacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  whatsappNumber: text("whatsapp_number").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  createdBySupplierId: uuid("created_by_supplier_id").references(() => supplierProfiles.userId, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("client_contacts_whatsapp_idx").on(table.whatsappNumber),
+  uniqueIndex("client_contacts_user_idx").on(table.userId),
+]);
+
 export const eventPackages = pgTable("event_packages", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizerSupplierId: uuid("organizer_supplier_id").notNull().references(() => supplierProfiles.userId, { onDelete: "cascade" }),
   clientUserId: uuid("client_user_id").references(() => users.id, { onDelete: "set null" }),
+  clientContactId: uuid("client_contact_id").references(() => clientContacts.id, { onDelete: "set null" }),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientWhatsapp: text("client_whatsapp"),
@@ -305,6 +321,8 @@ export const eventPackages = pgTable("event_packages", {
   eventTitle: text("event_title").notNull(),
   eventDate: date("event_date"),
   eventLocation: text("event_location"),
+  venueListingId: uuid("venue_listing_id").references(() => supplierListings.id, { onDelete: "set null" }),
+  origin: eventOrigin("origin").default("SUPPLIER").notNull(),
   status: eventPackageStatus("status").default("DRAFT").notNull(),
   subtotalCents: integer("subtotal_cents").notNull(),
   administrationFeeBps: integer("administration_fee_bps").notNull(),

@@ -1,13 +1,71 @@
 import { neon } from "@neondatabase/serverless";
+
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL não configurada.");
-const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3001"; const sql = neon(process.env.DATABASE_URL); const suffix = Date.now(); const supplierEmail = `teste-pacote-fornecedor-${suffix}@bora.local`; const clientEmail = `teste-pacote-cliente-${suffix}@bora.local`; const password = `Bora-${suffix}-A1!`;
-class Jar { cookies=new Map(); update(h){const values=typeof h.getSetCookie==="function"?h.getSetCookie():[h.get("set-cookie")].filter(Boolean);for(const value of values){const pair=value.split(";",1)[0],i=pair.indexOf("=");if(i>0)this.cookies.set(pair.slice(0,i),pair.slice(i+1));}} value(){return [...this.cookies].map(([k,v])=>`${k}=${v}`).join("; ");}}
-async function request(path,{jar,body,method="POST"}={}){const headers={origin:baseURL};if(body!==undefined)headers["content-type"]="application/json";if(jar?.value())headers.cookie=jar.value();const response=await fetch(`${baseURL}${path}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});jar?.update(response.headers);return response;}
-async function expect(response,status,label){if(response.status!==status)throw new Error(`${label}: ${response.status} ${(await response.text()).slice(0,250)}`);return response;}
-let supplierId,clientId;
-try{
-  const supplierJar=new Jar();await expect(await request("/api/auth/sign-up/email",{jar:supplierJar,body:{name:"Fornecedor Pacotes",email:supplierEmail,password}}),200,"cadastro fornecedor");await expect(await request("/api/onboarding",{jar:supplierJar,body:{role:"SUPPLIER",whatsappName:"Fornecedor",whatsappNumber:"85999997777",acceptedTerms:true,businessName:"Organizador Teste",customServices:["Organização de eventos"]}}),200,"onboarding fornecedor");const [supplierUser]=await sql.query("select id from users where email=$1",[supplierEmail]);supplierId=supplierUser.id;await sql.query("insert into user_roles(user_id,role) values($1,'ADMIN') on conflict do nothing",[supplierId]);await expect(await request(`/api/admin/suppliers/${supplierId}`,{jar:supplierJar,method:"PATCH",body:{approvalStatus:"ACTIVE",administrationFeePercent:12.5}}),200,"aprovação e taxa");
-  const clientJar=new Jar();await expect(await request("/api/auth/sign-up/email",{jar:clientJar,body:{name:"Cliente Pacotes",email:clientEmail,password}}),200,"cadastro cliente");await expect(await request("/api/onboarding",{jar:clientJar,body:{role:"CLIENT",whatsappName:"Cliente",whatsappNumber:"85999996666",acceptedTerms:true}}),200,"onboarding cliente");const [clientUser]=await sql.query("select id from users where email=$1",[clientEmail]);clientId=clientUser.id;
-  const created=await expect(await request("/api/supplier/packages",{jar:supplierJar,body:{clientName:"Cliente Pacotes",clientEmail,clientWhatsapp:"85999996666",eventType:"Aniversário adulto",eventTitle:"Festa completa de teste",eventDate:"2026-12-20",eventLocation:"Fortaleza",sendToClient:true,items:[{serviceName:"Espaço",providerKind:"SELF",amountCents:10000},{serviceName:"Decoração",providerKind:"MANUAL",providerName:"Decorador Livre",amountCents:5000}]}}),201,"criação do pacote");const {packageId}=await created.json();const [saved]=await sql.query("select subtotal_cents,administration_fee_bps,administration_fee_cents,total_cents,status,client_user_id from event_packages where id=$1",[packageId]);if(saved.subtotal_cents!==15000||saved.administration_fee_bps!==1250||saved.administration_fee_cents!==1875||saved.total_cents!==16875||saved.status!=="SENT"||saved.client_user_id!==clientId)throw new Error("Cálculos ou vínculo do pacote incorretos.");
-  const packagesPage=await expect(await request("/cliente/pacotes",{jar:clientJar,method:"GET"}),200,"pacotes do cliente");if(!(await packagesPage.text()).includes("Festa completa de teste"))throw new Error("Pacote não apareceu para o cliente.");const contract=await expect(await request(`/cliente/pacotes/${packageId}/contrato`,{jar:clientJar,method:"GET"}),200,"contrato mesclado");const html=await contract.text();if(!html.includes("Decorador Livre")||!html.includes("168,75"))throw new Error("Contrato não contém grade e total.");console.log("Fluxo validado: taxa na aprovação, grade com recebedores, envio ao cliente e contrato preenchido.");
-}finally{for(const id of [supplierId,clientId].filter(Boolean)){await sql.query("delete from audit_logs where actor_user_id=$1 or target_user_id=$1",[id]);}if(supplierId)await sql.query("delete from users where id=$1",[supplierId]);if(clientId)await sql.query("delete from users where id=$1",[clientId]);}
+const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3001";
+const sql = neon(process.env.DATABASE_URL);
+const suffix = Date.now();
+const digits = String(suffix).slice(-8);
+const supplierPhone = `859${digits}`;
+const clientPhone = `858${digits}`;
+const supplierEmail = `teste-evento-fornecedor-${suffix}@bora.local`;
+const clientEmail = `teste-evento-cliente-${suffix}@bora.local`;
+const password = `Bora-${suffix}-A1!`;
+
+class Jar {
+  cookies = new Map();
+  update(headers) {
+    const values = typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [headers.get("set-cookie")].filter(Boolean);
+    for (const value of values) { const pair = value.split(";", 1)[0]; const index = pair.indexOf("="); if (index > 0) this.cookies.set(pair.slice(0, index), pair.slice(index + 1)); }
+  }
+  value() { return [...this.cookies].map(([key, value]) => `${key}=${value}`).join("; "); }
+}
+
+async function request(path, { jar, body, method = "POST" } = {}) {
+  const headers = { origin: baseURL };
+  if (body !== undefined) headers["content-type"] = "application/json";
+  if (jar?.value()) headers.cookie = jar.value();
+  const response = await fetch(`${baseURL}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  jar?.update(response.headers);
+  return response;
+}
+async function expect(response, status, label) { if (response.status !== status) throw new Error(`${label}: ${response.status} ${(await response.text()).slice(0, 350)}`); return response; }
+
+let supplierId;
+let clientId;
+let packageId;
+try {
+  const supplierJar = new Jar();
+  await expect(await request("/api/auth/sign-up/email", { jar: supplierJar, body: { name: "Fornecedor Eventos", email: supplierEmail, password } }), 200, "cadastro fornecedor");
+  await expect(await request("/api/onboarding", { jar: supplierJar, body: { role: "SUPPLIER", whatsappName: "Fornecedor", whatsappNumber: supplierPhone, acceptedTerms: true, businessName: "Organizador Teste", customServices: ["Organização de eventos"] } }), 200, "onboarding fornecedor");
+  [{ id: supplierId }] = await sql.query("select id from users where email=$1", [supplierEmail]);
+  await sql.query("insert into user_roles(user_id,role) values($1,'ADMIN') on conflict do nothing", [supplierId]);
+  await expect(await request(`/api/admin/suppliers/${supplierId}`, { jar: supplierJar, method: "PATCH", body: { approvalStatus: "ACTIVE", administrationFeePercent: 12.5 } }), 200, "aprovação e taxa");
+
+  const created = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, eventType: "Casamento", eventTitle: "Casamento criado pelo fornecedor", eventDate: "2026-12-20", eventLocation: "Fortaleza", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }, { serviceName: "Decoração", providerKind: "MANUAL", providerName: "Decorador Livre", amountCents: 5000 }] } }), 201, "criação do evento");
+  ({ packageId } = await created.json());
+  let [saved] = await sql.query("select client_contact_id,client_user_id,origin,total_cents,status from event_packages where id=$1", [packageId]);
+  if (!saved.client_contact_id || saved.client_user_id || saved.origin !== "SUPPLIER" || saved.total_cents !== 16875 || saved.status !== "SENT") throw new Error("Evento inicial, origem ou cálculo incorreto.");
+
+  const supplierPage = await expect(await request("/fornecedor/pacotes", { jar: supplierJar, method: "GET" }), 200, "grade do fornecedor");
+  const supplierHtml = await supplierPage.text();
+  if (!supplierHtml.includes("Casamento criado pelo fornecedor") || !supplierHtml.includes("Cadastrar novo evento") || !supplierHtml.includes("Editar")) throw new Error("Grade de eventos do fornecedor incompleta.");
+
+  await expect(await request(`/api/supplier/packages/${packageId}`, { jar: supplierJar, method: "PATCH", body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, eventType: "Casamento", eventTitle: "Casamento atualizado", eventDate: "2026-12-21", eventLocation: "Fortaleza", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 20000 }] } }), 200, "edição do evento");
+
+  const clientJar = new Jar();
+  await expect(await request("/api/auth/sign-up/email", { jar: clientJar, body: { name: "Cliente Futuro", email: clientEmail, password } }), 200, "cadastro posterior do cliente");
+  await expect(await request("/api/onboarding", { jar: clientJar, body: { role: "CLIENT", whatsappName: "Cliente Futuro", whatsappNumber: clientPhone, acceptedTerms: true } }), 200, "vínculo pelo WhatsApp");
+  [{ id: clientId }] = await sql.query("select id from users where email=$1", [clientEmail]);
+  [saved] = await sql.query("select client_user_id,total_cents from event_packages where id=$1", [packageId]);
+  if (saved.client_user_id !== clientId || saved.total_cents !== 22500) throw new Error("Vínculo posterior ou recálculo da edição incorreto.");
+
+  const clientPage = await expect(await request("/cliente/planejamentos", { jar: clientJar, method: "GET" }), 200, "eventos unificados do cliente");
+  const clientHtml = await clientPage.text();
+  if (!clientHtml.includes("Casamento atualizado") || !clientHtml.includes("Cadastrado pelo fornecedor")) throw new Error("Evento não apareceu com a origem correta no portal do cliente.");
+  console.log("Fluxo validado: grade, edição, contato pré-cadastrado, vínculo seguro e origem no portal do cliente.");
+} finally {
+  for (const id of [supplierId, clientId].filter(Boolean)) await sql.query("delete from audit_logs where actor_user_id=$1 or target_user_id=$1", [id]);
+  if (supplierId) await sql.query("delete from users where id=$1", [supplierId]);
+  if (clientId) await sql.query("delete from users where id=$1", [clientId]);
+  await sql.query("delete from client_contacts where whatsapp_number=$1", [clientPhone]);
+}

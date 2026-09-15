@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { serviceCategories, supplierProfiles, supplierServices, userProfiles, userRoles } from "@/lib/db/schema";
+import { clientContacts, eventPackages, serviceCategories, supplierProfiles, supplierServices, userProfiles, userRoles } from "@/lib/db/schema";
 import { cleanServiceName, normalizeServiceName } from "@/lib/services";
 import { isValidWhatsapp, normalizeWhatsapp } from "@/lib/whatsapp";
 
@@ -38,6 +38,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "Esta conta não pode alterar o cadastro." }, { status: 403 });
     }
     const whatsappNumber = normalizeWhatsapp(data.whatsappNumber);
+    const [existingContact] = data.role === "CLIENT" ? await db.select().from(clientContacts).where(eq(clientContacts.whatsappNumber, whatsappNumber)).limit(1) : [];
+    if (existingContact?.userId && existingContact.userId !== session.user.id) {
+      return Response.json({ error: "Este WhatsApp já está vinculado a outra conta." }, { status: 409 });
+    }
     const status = "ACTIVE";
     await db.insert(userProfiles).values({
       userId: session.user.id,
@@ -49,6 +53,16 @@ export async function POST(request: Request) {
       acceptedTermsAt: new Date(),
     }).onConflictDoUpdate({ target: userProfiles.userId, set: { whatsappNumber, whatsappName: data.whatsappName, acceptsOperationalMessages: data.acceptsOperationalMessages, acceptsMarketing: data.acceptsMarketing, updatedAt: new Date() } });
     await db.insert(userRoles).values({ userId: session.user.id, role: data.role }).onConflictDoNothing();
+
+    if (data.role === "CLIENT") {
+      const contact = existingContact;
+      if (!contact) {
+        await db.insert(clientContacts).values({ whatsappNumber, name: session.user.name, email: session.user.email.toLowerCase(), userId: session.user.id });
+      } else if (!contact.userId && contact.email.toLowerCase() === session.user.email.toLowerCase()) {
+        await db.update(clientContacts).set({ userId: session.user.id, name: session.user.name, updatedAt: new Date() }).where(eq(clientContacts.id, contact.id));
+        await db.update(eventPackages).set({ clientUserId: session.user.id, updatedAt: new Date() }).where(eq(eventPackages.clientContactId, contact.id));
+      }
+    }
 
     if (data.role === "SUPPLIER") {
       const uniqueSuggestedIds = [...new Set(data.serviceIds)];

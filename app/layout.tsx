@@ -9,6 +9,7 @@ import "./responsive.css";
 import "./client.css";
 import "./proposals.css";
 import "./packages.css";
+import "./events.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://boracurtirbora.com.br"),
