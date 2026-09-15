@@ -156,6 +156,21 @@ export const supplierServices = pgTable("supplier_services", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [primaryKey({ columns: [table.supplierUserId, table.serviceCategoryId] })]);
 
+export const eventLocations = pgTable("event_locations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  normalizedAddress: text("normalized_address").notNull(),
+  city: text("city"),
+  state: text("state"),
+  createdBySupplierId: uuid("created_by_supplier_id").references(() => supplierProfiles.userId, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("event_locations_address_idx").on(table.normalizedAddress),
+  index("event_locations_name_idx").on(table.name),
+]);
+
 export const supplierListings = pgTable("supplier_listings", {
   id: uuid("id").defaultRandom().primaryKey(),
   supplierUserId: uuid("supplier_user_id").notNull().references(() => supplierProfiles.userId, { onDelete: "cascade" }),
@@ -165,6 +180,8 @@ export const supplierListings = pgTable("supplier_listings", {
   priceCents: integer("price_cents").notNull(),
   priceUnit: supplierPriceUnit("price_unit").notNull(),
   capacity: integer("capacity"),
+  eventLocationId: uuid("event_location_id").references(() => eventLocations.id, { onDelete: "set null" }),
+  address: text("address"),
   city: text("city"),
   state: text("state"),
   status: supplierListingStatus("status").default("DRAFT").notNull(),
@@ -322,6 +339,7 @@ export const eventPackages = pgTable("event_packages", {
   eventDate: date("event_date"),
   eventLocation: text("event_location"),
   venueListingId: uuid("venue_listing_id").references(() => supplierListings.id, { onDelete: "set null" }),
+  eventLocationId: uuid("event_location_id").references(() => eventLocations.id, { onDelete: "set null" }),
   origin: eventOrigin("origin").default("SUPPLIER").notNull(),
   status: eventPackageStatus("status").default("DRAFT").notNull(),
   subtotalCents: integer("subtotal_cents").notNull(),

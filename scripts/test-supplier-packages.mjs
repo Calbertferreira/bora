@@ -33,6 +33,7 @@ async function expect(response, status, label) { if (response.status !== status)
 let supplierId;
 let clientId;
 let packageId;
+let locationId;
 try {
   const supplierJar = new Jar();
   await expect(await request("/api/auth/sign-up/email", { jar: supplierJar, body: { name: "Fornecedor Eventos", email: supplierEmail, password } }), 200, "cadastro fornecedor");
@@ -41,16 +42,21 @@ try {
   await sql.query("insert into user_roles(user_id,role) values($1,'ADMIN') on conflict do nothing", [supplierId]);
   await expect(await request(`/api/admin/suppliers/${supplierId}`, { jar: supplierJar, method: "PATCH", body: { approvalStatus: "ACTIVE", administrationFeePercent: 12.5 } }), 200, "aprovação e taxa");
 
-  const created = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, eventType: "Casamento", eventTitle: "Casamento criado pelo fornecedor", eventDate: "2026-12-20", eventLocation: "Fortaleza", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }, { serviceName: "Decoração", providerKind: "MANUAL", providerName: "Decorador Livre", amountCents: 5000 }] } }), 201, "criação do evento");
+  const created = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, locationName: "Espaço Temporário", locationAddress: `Rua de Teste ${suffix}, 100`, locationCity: "Fortaleza", locationState: "CE", eventType: "Casamento", eventTitle: "Casamento criado pelo fornecedor", eventDate: "2026-12-20", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }, { serviceName: "Decoração", providerKind: "MANUAL", providerName: "Decorador Livre", amountCents: 5000 }] } }), 201, "criação do evento");
   ({ packageId } = await created.json());
-  let [saved] = await sql.query("select client_contact_id,client_user_id,origin,total_cents,status from event_packages where id=$1", [packageId]);
-  if (!saved.client_contact_id || saved.client_user_id || saved.origin !== "SUPPLIER" || saved.total_cents !== 16875 || saved.status !== "SENT") throw new Error("Evento inicial, origem ou cálculo incorreto.");
+  let [saved] = await sql.query("select client_contact_id,client_user_id,event_location_id,origin,total_cents,status from event_packages where id=$1", [packageId]);
+  locationId = saved.event_location_id;
+  if (!saved.client_contact_id || !locationId || saved.client_user_id || saved.origin !== "SUPPLIER" || saved.total_cents !== 16875 || saved.status !== "SENT") throw new Error(`Evento inicial, local, origem ou cálculo incorreto: ${JSON.stringify(saved)}`);
+  const repeated = await expect(await request("/api/supplier/packages", { jar: supplierJar, body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, locationName: "Outro nome não deve duplicar", locationAddress: `RUA DE TESTE ${suffix} 100`, locationCity: "FORTALEZA", locationState: "ce", eventType: "Casamento", eventTitle: "Teste de endereço repetido", eventDate: "2026-12-22", sendToClient: false, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 10000 }] } }), 201, "reutilização pelo endereço");
+  const repeatedId = (await repeated.json()).packageId;
+  const [repeatedLocation] = await sql.query("select event_location_id from event_packages where id=$1", [repeatedId]);
+  if (repeatedLocation.event_location_id !== locationId) throw new Error("O mesmo endereço criou um local duplicado.");
 
   const supplierPage = await expect(await request("/fornecedor/pacotes", { jar: supplierJar, method: "GET" }), 200, "grade do fornecedor");
   const supplierHtml = await supplierPage.text();
   if (!supplierHtml.includes("Casamento criado pelo fornecedor") || !supplierHtml.includes("Cadastrar novo evento") || !supplierHtml.includes("Editar")) throw new Error("Grade de eventos do fornecedor incompleta.");
 
-  await expect(await request(`/api/supplier/packages/${packageId}`, { jar: supplierJar, method: "PATCH", body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, eventType: "Casamento", eventTitle: "Casamento atualizado", eventDate: "2026-12-21", eventLocation: "Fortaleza", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 20000 }] } }), 200, "edição do evento");
+  await expect(await request(`/api/supplier/packages/${packageId}`, { jar: supplierJar, method: "PATCH", body: { clientName: "Cliente Futuro", clientEmail, clientWhatsapp: clientPhone, eventLocationId: locationId, eventType: "Casamento", eventTitle: "Casamento atualizado", eventDate: "2026-12-21", sendToClient: true, items: [{ serviceName: "Espaço", providerKind: "SELF", amountCents: 20000 }] } }), 200, "edição do evento");
 
   const clientJar = new Jar();
   await expect(await request("/api/auth/sign-up/email", { jar: clientJar, body: { name: "Cliente Futuro", email: clientEmail, password } }), 200, "cadastro posterior do cliente");
@@ -68,4 +74,5 @@ try {
   if (supplierId) await sql.query("delete from users where id=$1", [supplierId]);
   if (clientId) await sql.query("delete from users where id=$1", [clientId]);
   await sql.query("delete from client_contacts where whatsapp_number=$1", [clientPhone]);
+  if (locationId) await sql.query("delete from event_locations where id=$1", [locationId]);
 }

@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { auditLogs, supplierListingImages, supplierListings } from "@/lib/db/schema";
 import { listingDetailsSchema, listingPatchSchema } from "@/lib/listing-validation";
 import { requireActiveSupplierApi } from "@/lib/supplier-access";
+import { resolveEventLocation } from "@/lib/event-locations";
 
 async function ownedListing(listingId: string, userId: string, db: ReturnType<typeof import("@/lib/db").getDb>) {
   return (await db.select().from(supplierListings).where(and(
@@ -32,6 +33,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ listi
     priceCents: changes.priceCents ?? current.priceCents,
     priceUnit: changes.priceUnit ?? current.priceUnit,
     capacity: changes.capacity !== undefined ? changes.capacity : current.capacity,
+    address: changes.address !== undefined ? changes.address : current.address,
     city: changes.city !== undefined ? changes.city : current.city,
     state: changes.state !== undefined ? changes.state : current.state,
     status: changes.status ?? current.status,
@@ -39,6 +41,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ listi
   if (!merged.success) return Response.json({ error: "Preencha os dados obrigatórios deste tipo de item." }, { status: 400 });
 
   try {
+    const location = merged.data.type === "VENUE" ? await resolveEventLocation(supplierContext.db, { locationName: merged.data.name, locationAddress: merged.data.address ?? "", locationCity: merged.data.city ?? "", locationState: merged.data.state ?? "" }, userId) : null;
     const existingImages = await supplierContext.db.select().from(supplierListingImages)
       .where(eq(supplierListingImages.listingId, listingId));
     const removable = existingImages.filter((image) => removedImageIds.includes(image.id));
@@ -51,6 +54,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ listi
 
     await supplierContext.db.update(supplierListings).set({
       ...merged.data,
+      eventLocationId: location?.id ?? null,
+      address: location?.address ?? null,
       city: merged.data.city || null,
       state: merged.data.state || null,
       capacity: merged.data.capacity || null,
@@ -80,7 +85,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ listi
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[supplier/listings/:id PATCH]", error);
-    return Response.json({ error: "Não foi possível atualizar este item." }, { status: 500 });
+    return Response.json({ error: error instanceof Error && error.message === "LOCATION_REQUIRED" ? "Informe o endereço completo do espaço." : "Não foi possível atualizar este item." }, { status: error instanceof Error && error.message === "LOCATION_REQUIRED" ? 400 : 500 });
   }
 }
 

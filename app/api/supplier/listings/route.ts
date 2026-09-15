@@ -1,6 +1,7 @@
 import { auditLogs, supplierListingImages, supplierListings } from "@/lib/db/schema";
 import { listingCreateSchema } from "@/lib/listing-validation";
 import { requireActiveSupplierApi } from "@/lib/supplier-access";
+import { resolveEventLocation } from "@/lib/event-locations";
 
 export async function POST(request: Request) {
   const supplierContext = await requireActiveSupplierApi();
@@ -18,9 +19,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const location = details.type === "VENUE" ? await resolveEventLocation(supplierContext.db, { locationName: details.name, locationAddress: details.address ?? "", locationCity: details.city ?? "", locationState: details.state ?? "" }, userId) : null;
     const [listing] = await supplierContext.db.insert(supplierListings).values({
       ...details,
       supplierUserId: userId,
+      eventLocationId: location?.id ?? null,
+      address: location?.address ?? null,
       city: details.city || null,
       state: details.state || null,
       capacity: details.capacity || null,
@@ -46,6 +50,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, listingId: listing.id }, { status: 201 });
   } catch (error) {
     console.error("[supplier/listings]", error);
-    return Response.json({ error: "Não foi possível salvar este item do catálogo." }, { status: 500 });
+    return Response.json({ error: error instanceof Error && error.message === "LOCATION_REQUIRED" ? "Informe o endereço completo do espaço." : "Não foi possível salvar este item do catálogo." }, { status: error instanceof Error && error.message === "LOCATION_REQUIRED" ? 400 : 500 });
   }
 }

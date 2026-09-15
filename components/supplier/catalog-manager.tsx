@@ -15,6 +15,7 @@ type CatalogListing = {
   priceCents: number;
   priceUnit: SupplierPriceUnit;
   capacity: number | null;
+  address: string | null;
   city: string | null;
   state: string | null;
   status: "DRAFT" | "PUBLISHED";
@@ -28,6 +29,7 @@ type FormState = {
   price: string;
   priceUnit: SupplierPriceUnit;
   capacity: string;
+  address: string;
   city: string;
   state: string;
   published: boolean;
@@ -40,6 +42,7 @@ const emptyForm: FormState = {
   price: "",
   priceUnit: "PER_EVENT",
   capacity: "",
+  address: "",
   city: "",
   state: "",
   published: false,
@@ -86,6 +89,7 @@ export function CatalogManager({ userId, initialListings }: { userId: string; in
       price: (listing.priceCents / 100).toFixed(2),
       priceUnit: listing.priceUnit,
       capacity: listing.capacity?.toString() ?? "",
+      address: listing.address ?? "",
       city: listing.city ?? "",
       state: listing.state ?? "",
       published: listing.status === "PUBLISHED",
@@ -148,6 +152,7 @@ export function CatalogManager({ userId, initialListings }: { userId: string; in
         priceCents: Math.round(price * 100),
         priceUnit: form.priceUnit,
         capacity: form.capacity ? Number(form.capacity) : null,
+        address: form.address || null,
         city: form.city || null,
         state: form.state ? form.state.toUpperCase() : null,
         status: form.published ? "PUBLISHED" : "DRAFT",
@@ -222,7 +227,7 @@ export function CatalogManager({ userId, initialListings }: { userId: string; in
           <label className="full">Descrição<textarea required minLength={20} maxLength={2500} rows={5} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Conte o que está incluído, diferenciais e condições importantes." /></label>
           <label>Preço em reais<input required inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="Ex.: 2500,00" /></label>
           <label>Forma de cobrança<select value={form.priceUnit} onChange={(event) => setForm({ ...form, priceUnit: event.target.value as SupplierPriceUnit })}>{priceUnitOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          {isVenue && <><label>Capacidade máxima<input required type="number" min={1} value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} placeholder="Quantidade de pessoas" /></label><label>Cidade<input required maxLength={100} value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></label><label>Estado (UF)<input required minLength={2} maxLength={2} value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value.toUpperCase() })} placeholder="CE" /></label></>}
+          {isVenue && <><label>Capacidade máxima<input required type="number" min={1} value={form.capacity} onChange={(event) => setForm({ ...form, capacity: event.target.value })} placeholder="Quantidade de pessoas" /></label><label className="full">Endereço completo<input required minLength={5} maxLength={240} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} placeholder="Rua, número, complemento e bairro" /></label><label>Cidade<input required maxLength={100} value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></label><label>Estado (UF)<input required minLength={2} maxLength={2} value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value.toUpperCase() })} placeholder="CE" /></label></>}
         </div>
 
         <div className="photo-field">
@@ -245,7 +250,7 @@ export function CatalogManager({ userId, initialListings }: { userId: string; in
       {initialListings.length === 0 ? <div className="catalog-empty"><ImagePlus size={35} /><h3>Seu catálogo ainda está vazio</h3><p>Cadastre o primeiro espaço, buffet, tema de decoração ou serviço.</p></div> : <div className="catalog-grid">
         {initialListings.map((listing) => <article className="catalog-item" key={listing.id}>
           <div className="catalog-cover">{listing.images[0] ? <img src={listing.images[0].url} alt={listing.images[0].altText || listing.name} /> : <ImagePlus size={30} />}<span className={`catalog-status ${listing.status.toLowerCase()}`}>{listing.status === "PUBLISHED" ? <><Check size={12} /> Publicado</> : "Rascunho"}</span>{listing.images.length > 1 && <small>{listing.images.length} fotos</small>}</div>
-          <div className="catalog-item-body"><span>{listingTypeLabel(listing.type)}</span><h3>{listing.name}</h3><p>{listing.description}</p>{listing.type === "VENUE" && <small>{listing.city}/{listing.state} · até {listing.capacity} pessoas</small>}<div className="catalog-price"><strong>{formatPrice(listing.priceCents)}</strong><span>{priceUnitLabel(listing.priceUnit)}</span></div><div className="catalog-item-actions"><button type="button" onClick={() => startEdit(listing)} disabled={busy}><Pencil size={14} /> Editar</button><button type="button" onClick={() => changeStatus(listing)} disabled={busy}>{listing.status === "PUBLISHED" ? "Tirar do ar" : "Publicar"}</button><button type="button" className="danger" onClick={() => deleteListing(listing)} disabled={busy}><Trash2 size={14} /></button></div></div>
+          <div className="catalog-item-body"><span>{listingTypeLabel(listing.type)}</span><h3>{listing.name}</h3><p>{listing.description}</p>{listing.type === "VENUE" && <small>{listing.address ? `${listing.address} · ` : ""}{listing.city}/{listing.state} · até {listing.capacity} pessoas</small>}<div className="catalog-price"><strong>{formatPrice(listing.priceCents)}</strong><span>{priceUnitLabel(listing.priceUnit)}</span></div><div className="catalog-item-actions"><button type="button" onClick={() => startEdit(listing)} disabled={busy}><Pencil size={14} /> Editar</button><button type="button" onClick={() => changeStatus(listing)} disabled={busy}>{listing.status === "PUBLISHED" ? "Tirar do ar" : "Publicar"}</button><button type="button" className="danger" onClick={() => deleteListing(listing)} disabled={busy}><Trash2 size={14} /></button></div></div>
         </article>)}
       </div>}
     </section>

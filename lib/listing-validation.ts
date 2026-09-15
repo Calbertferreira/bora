@@ -23,12 +23,14 @@ export const listingDetailsSchema = z.object({
   priceCents: z.number().int().min(1).max(100_000_000_00),
   priceUnit: priceUnitSchema,
   capacity: z.number().int().min(1).max(100_000).nullable().optional(),
+  address: z.string().trim().max(240).nullable().optional(),
   city: z.string().trim().max(100).nullable().optional(),
   state: z.string().trim().length(2).transform((value) => value.toUpperCase()).nullable().optional(),
   status: listingStatusSchema,
 }).superRefine((data, context) => {
   if (data.type === "VENUE") {
     if (!data.capacity) context.addIssue({ code: "custom", path: ["capacity"], message: "Informe a capacidade do espaço." });
+    if (!data.address || data.address.length < 5) context.addIssue({ code: "custom", path: ["address"], message: "Informe o endereço completo do espaço." });
     if (!data.city) context.addIssue({ code: "custom", path: ["city"], message: "Informe a cidade do espaço." });
     if (!data.state) context.addIssue({ code: "custom", path: ["state"], message: "Informe o estado do espaço." });
   }
@@ -45,6 +47,7 @@ export const listingPatchSchema = z.object({
   priceCents: z.number().int().min(1).max(100_000_000_00).optional(),
   priceUnit: priceUnitSchema.optional(),
   capacity: z.number().int().min(1).max(100_000).nullable().optional(),
+  address: z.string().trim().max(240).nullable().optional(),
   city: z.string().trim().max(100).nullable().optional(),
   state: z.string().trim().length(2).transform((value) => value.toUpperCase()).nullable().optional(),
   status: listingStatusSchema.optional(),

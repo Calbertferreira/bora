@@ -52,6 +52,7 @@ export default async function SupplierCatalogPage() {
           priceCents: listing.priceCents,
           priceUnit: listing.priceUnit,
           capacity: listing.capacity,
+          address: listing.address,
           city: listing.city,
           state: listing.state,
           status: listing.status,
