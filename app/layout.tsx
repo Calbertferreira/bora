@@ -6,6 +6,7 @@ import "./auth.css";
 import "./admin.css";
 import "./supplier.css";
 import "./responsive.css";
+import "./client.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://boracurtirbora.com.br"),

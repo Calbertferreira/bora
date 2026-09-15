@@ -31,7 +31,9 @@ export function OnboardingForm({ serviceSuggestions }: { serviceSuggestions: Ser
     }) });
     const result = await response.json();
     if (!response.ok) { setMessage(result.error ?? "Não foi possível concluir o cadastro."); setLoading(false); return; }
-    window.sessionStorage.removeItem("bora:signup-role"); window.location.href = "/painel";
+    const returnPath = window.sessionStorage.getItem("bora:signup-return");
+    window.sessionStorage.removeItem("bora:signup-role"); window.sessionStorage.removeItem("bora:signup-return");
+    window.location.href = returnPath?.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/painel";
   }
 
   return <form className="auth-form" onSubmit={submit}>

@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -12,7 +13,18 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const experienceType = pgEnum("experience_type", ["celebrate", "relax"]);
+export const experienceType = pgEnum("experience_type", ["celebrate", "relax", "suggest"]);
+export const planStatus = pgEnum("plan_status", [
+  "DRAFT",
+  "SUBMITTED",
+  "IN_REVIEW",
+  "PROPOSALS_AVAILABLE",
+  "SELECTED",
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+]);
 export const appRole = pgEnum("app_role", ["ADMIN", "STAFF", "SUPPLIER", "CLIENT"]);
 export const accountStatus = pgEnum("account_status", [
   "PENDING",
@@ -215,9 +227,40 @@ export const plans = pgTable("plans", {
   userId: uuid("user_id").references(() => users.id),
   type: experienceType("type").notNull(),
   title: text("title").notNull(),
+  occasion: text("occasion"),
+  idea: text("idea"),
+  city: text("city"),
+  state: text("state"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
   guests: integer("guests"),
+  budgetLabel: text("budget_label"),
+  status: planStatus("status").default("SUBMITTED").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("plans_user_created_idx").on(table.userId, table.createdAt),
+  index("plans_status_created_idx").on(table.status, table.createdAt),
+]);
+
+export const planServices = pgTable("plan_services", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  planId: uuid("plan_id").notNull().references(() => plans.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("plan_services_plan_name_idx").on(table.planId, table.name),
+  index("plan_services_plan_idx").on(table.planId),
+]);
+
+export const planStatusHistory = pgTable("plan_status_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  planId: uuid("plan_id").notNull().references(() => plans.id, { onDelete: "cascade" }),
+  status: planStatus("status").notNull(),
+  note: text("note"),
+  changedBy: uuid("changed_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("plan_status_history_plan_idx").on(table.planId, table.createdAt)]);
 
 export const authSchema = {
   user: users,

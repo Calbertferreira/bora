@@ -8,7 +8,7 @@ import type { ServiceOption } from "@/lib/services";
 
 type PublicRole = "CLIENT" | "SUPPLIER";
 
-export function SignupForm({ googleEnabled, initialRole, serviceSuggestions }: { googleEnabled: boolean; initialRole: PublicRole; serviceSuggestions: ServiceOption[] }) {
+export function SignupForm({ googleEnabled, initialRole, serviceSuggestions, callbackURL = "/painel" }: { googleEnabled: boolean; initialRole: PublicRole; serviceSuggestions: ServiceOption[]; callbackURL?: string }) {
   const [role, setRole] = useState<PublicRole>(initialRole);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,13 +52,14 @@ export function SignupForm({ googleEnabled, initialRole, serviceSuggestions }: {
       setMessage("Sua conta foi criada. Conclua os dados para continuar.");
       window.setTimeout(() => { window.location.href = "/onboarding"; }, 1200); return;
     }
-    window.location.href = "/painel";
+    window.location.href = callbackURL;
   }
 
   async function signupWithGoogle() {
     if (!googleEnabled) return;
     setLoading(true);
     window.sessionStorage.setItem("bora:signup-role", role);
+    window.sessionStorage.setItem("bora:signup-return", callbackURL);
     await authClient.signIn.social({ provider: "google", callbackURL: "/onboarding" });
   }
 
@@ -83,6 +84,6 @@ export function SignupForm({ googleEnabled, initialRole, serviceSuggestions }: {
     <button className="primary-button" disabled={loading}>{loading ? "Criando sua conta..." : "Criar conta"}</button>
     <div className="auth-divider"><span>ou</span></div>
     <button className="social-button" type="button" onClick={signupWithGoogle} disabled={!googleEnabled || loading}><span className="google-mark">G</span>{googleEnabled ? "Cadastrar com Google" : "Google disponível em breve"}</button>
-    <p className="auth-switch">Já tem uma conta? <a href="/entrar">Entrar</a></p>
+    <p className="auth-switch">Já tem uma conta? <a href={`/entrar?retorno=${encodeURIComponent(callbackURL)}`}>Entrar</a></p>
   </form>;
 }
